@@ -1,0 +1,81 @@
+import streamlit as st
+import requests
+
+# Configuración de la página (¡El Branding importa!)
+st.set_page_config(
+    page_title="RAG Enterprise Assistant",
+    page_icon="🤖",
+    layout="wide"
+)
+
+# Constantes (Apuntando a tu API FastAPI)
+API_URL = "http://127.0.0.1:8000"
+
+def main():
+    st.title("🤖 RAG Enterprise Assistant")
+    st.markdown("""
+    Este asistente utiliza **RAG (Retrieval Augmented Generation)** para responder preguntas
+    basadas estrictamente en tus documentos PDF.
+    
+    *Tecnologías: FastAPI, Qdrant, LangChain, GPT-4o.*
+    """)
+
+    # --- BARRA LATERAL (Subida de Archivos) ---
+    with st.sidebar:
+        st.header("📂 Ingesta de Conocimiento")
+        uploaded_file = st.file_uploader("Sube un PDF", type=["pdf"])
+        
+        if uploaded_file is not None:
+            if st.button("Procesar e Ingestar"):
+                with st.spinner("Troceando, vectorizando e indexando..."):
+                    # Enviamos el archivo a TU API (Endpoint /ingest)
+                    files = {"file": (uploaded_file.name, uploaded_file, "application/pdf")}
+                    try:
+                        response = requests.post(f"{API_URL}/ingest", files=files)
+                        if response.status_code == 200:
+                            st.success("✅ ¡Documento aprendido exitosamente!")
+                        else:
+                            st.error(f"❌ Error: {response.text}")
+                    except Exception as e:
+                        st.error(f"Error de conexión: {e}")
+
+    # --- CHAT PRINCIPAL ---
+    
+    # 1. Mantener historial en la sesión de Streamlit
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+
+    # 2. Mostrar mensajes anteriores
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # 3. Input del usuario
+    if prompt := st.chat_input("Escribe tu pregunta sobre el documento..."):
+        # Guardar y mostrar mensaje del usuario
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # 4. Llamar a TU API para obtener respuesta
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            message_placeholder.markdown("Pensando... 🧠")
+            
+            try:
+                # Llamada al endpoint /chat
+                payload = {"question": prompt}
+                response = requests.post(f"{API_URL}/chat", json=payload)
+                
+                if response.status_code == 200:
+                    answer = response.json()["answer"]
+                    message_placeholder.markdown(answer)
+                    # Guardar respuesta en historial
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
+                else:
+                    message_placeholder.error(f"Error del servidor: {response.text}")
+            except Exception as e:
+                message_placeholder.error(f"No se pudo conectar con la API: {e}")
+
+if __name__ == "__main__":
+    main()
