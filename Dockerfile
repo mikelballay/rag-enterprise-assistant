@@ -1,0 +1,23 @@
+# 1. Usamos una imagen ligera de Python 3.12 (Linux)
+FROM python:3.12-slim
+
+# 2. Evitamos que Python genere archivos .pyc y forzamos logs en tiempo real
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# 3. Directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# 4. Copiamos e instalamos dependencias (Las capas se cachean para ir rápido)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Copiamos el resto del código
+COPY . .
+
+# 6. Exponemos el puerto 8080 (El estándar de Google Cloud Run)
+EXPOSE 8080
+
+# 7. Comando para arrancar el servidor usando Uvicorn
+# 0.0.0.0 significa "escucha desde cualquier sitio"
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

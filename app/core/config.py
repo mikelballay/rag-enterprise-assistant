@@ -1,23 +1,16 @@
 import os
-from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
-# Cargar las variables del archivo .env al sistema
-load_dotenv()
-
-class Settings:
-    PROJECT_NAME: str = "RAG Enterprise Assistant"
-    VERSION: str = "1.0.0"
+class Settings(BaseSettings):
+    # Claves obligatorias
+    OPENAI_API_KEY: str
     
-    # OpenAI
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY")
-    
-    # Qdrant
-    QDRANT_HOST: str = os.getenv("QDRANT_HOST", "localhost")
-    QDRANT_PORT: int = int(os.getenv("QDRANT_PORT", 6333))
-    QDRANT_COLLECTION_NAME: str = os.getenv("QDRANT_COLLECTION_NAME", "rag_portfolio_docs")
+    # Configuración de Qdrant (Ahora flexible para Cloud o Local)
+    QDRANT_URL: str  # Ejemplo: "https://xyz...cloud.qdrant.io" o "http://localhost:6333"
+    QDRANT_API_KEY: str | None = None  # Puede ser None si estamos en local
+    QDRANT_COLLECTION_NAME: str = "rag_portfolio_docs"
 
-    def is_valid(self) -> bool:
-        return bool(self.OPENAI_API_KEY)
+    class Config:
+        env_file = ".env"
 
-# Instancia única de configuración para importar en otros archivos
 settings = Settings()

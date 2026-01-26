@@ -30,18 +30,16 @@ def ingest_file(file_path: str):
     splits = text_splitter.split_documents(docs)
     print(f"   --> Se generaron {len(splits)} fragmentos (chunks).")
 
-    # 3. Guardar en Qdrant (Usando la nueva sintaxis)
+    # 3. Guardar en Qdrant (Actualizado para Cloud)
     print("   --> Generando embeddings y guardando en Qdrant...")
     
-    url_qdrant = f"http://{settings.QDRANT_HOST}:{settings.QDRANT_PORT}"
-    
-    # Usamos QdrantVectorStore que es la clase moderna
     QdrantVectorStore.from_documents(
         documents=splits,
         embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
-        url=url_qdrant,
+        url=settings.QDRANT_URL,           
+        api_key=settings.QDRANT_API_KEY,   
         collection_name=settings.QDRANT_COLLECTION_NAME,
         force_recreate=True 
     )
-
+    
     print("✅ ¡Ingestión completada con éxito!")

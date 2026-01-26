@@ -17,15 +17,13 @@ def get_rag_chain():
         api_key=settings.OPENAI_API_KEY
     )
 
-    # 2. Conectar a la Base de Datos (La memoria)
-    url_qdrant = f"http://{settings.QDRANT_HOST}:{settings.QDRANT_PORT}"
-    
+    # 2. Conectar a la Base de Datos (Actualizado para Cloud)
     vectorstore = QdrantVectorStore.from_existing_collection(
         embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
         collection_name=settings.QDRANT_COLLECTION_NAME,
-        url=url_qdrant
+        url=settings.QDRANT_URL,           
+        api_key=settings.QDRANT_API_KEY    
     )
-    
     # Convertimos la DB en un "Retriever" (buscador)
     # k=3 significa: "Traeme los 3 fragmentos más relevantes"
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
