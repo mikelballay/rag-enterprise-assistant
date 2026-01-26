@@ -1,15 +1,14 @@
 import streamlit as st
 import requests
+import os
 
-# Configuración de la página (¡El Branding importa!)
-st.set_page_config(
-    page_title="RAG Enterprise Assistant",
-    page_icon="🤖",
-    layout="wide"
-)
+# CONFIGURACIÓN
+# Intenta leer la variable de entorno API_URL. 
+# Si no existe (estás en local), usa la del backend de Google que pegaste antes.
+API_URL = os.getenv("API_URL", "https://api-rag-82274106778.us-central1.run.app") 
 
-# Constantes (Apuntando a tu API FastAPI)
-API_URL = "http://127.0.0.1:8000"
+st.set_page_config(page_title="RAG Enterprise Assistant", page_icon="🧠")
+
 
 def main():
     st.title("🤖 RAG Enterprise Assistant")

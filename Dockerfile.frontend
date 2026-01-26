@@ -1,0 +1,19 @@
+# Usamos la misma base ligera
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Instalamos dependencias
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiamos el código
+COPY . .
+
+# Streamlit usa el puerto 8501 por defecto, pero Cloud Run espera el 8080.
+# Lo configuraremos en el comando de arranque.
+EXPOSE 8080
+
+# Comando para ejecutar Streamlit
+# Le decimos que escuche en el puerto 8080 y en la dirección 0.0.0.0
+CMD ["streamlit", "run", "frontend_ui.py", "--server.port=8080", "--server.address=0.0.0.0"]
