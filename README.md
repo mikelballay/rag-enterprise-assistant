@@ -1,95 +1,103 @@
-# 🧠 RAG Enterprise Assistant
+# 🧠 RAG Enterprise Assistant | Cloud Native
 
-![Python](https://img.shields.io/badge/Python-3.12-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.109-green) ![LangChain](https://img.shields.io/badge/LangChain-v0.1-orange) ![Qdrant](https://img.shields.io/badge/VectorDB-Qdrant-red) ![Docker](https://img.shields.io/badge/Container-Docker-blue)
+![Python](https://img.shields.io/badge/Python-3.12-blue?logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Container-2496ED?logo=docker&logoColor=white)
+![Google Cloud Run](https://img.shields.io/badge/Google_Cloud-Run-4285F4?logo=google-cloud&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Frontend-FF4B4B?logo=streamlit&logoColor=white)
+![Qdrant](https://img.shields.io/badge/Qdrant-Vector_DB-crimson)
 
-An End-to-End **Retrieval-Augmented Generation (RAG)** system designed for enterprise use cases. It allows users to ingest internal documentation (PDFs) and ask questions with high precision, strictly avoiding hallucinations by grounding answers in the provided context.
+> **Document Intelligence Assistant** deployed in a Serverless Microservices architecture. Capable of analyzing PDF documents, generating vector embeddings, and answering precise questions based on the extracted context.
 
-## 🚀 Key Features
+---
 
-* **Full-Stack AI Architecture:** From data ingestion to frontend visualization.
-* **Vector Database Integration:** Uses **Qdrant** (running via Docker) for efficient semantic search.
-* **Anti-Hallucination Guardrails:** The system is prompted to strictly answer *only* using retrieved context.
-* **Automated Pipeline:** PDF parsing, chunking, and embedding generation (OpenAI Embeddings).
-* **API-First Design:** Robust REST API built with **FastAPI**.
-* **Interactive UI:** User-friendly Chat Interface built with **Streamlit**.
+## 🚀 Live Demo
 
-## 🛠️ Tech Stack
+Try the application deployed on Google Cloud Platform:
+### 👉 [Access the Assistant (Click Here)](https://frontend-rag-82274106778.us-central1.run.app/)
 
-* **Core:** Python 3.12
-* **API:** FastAPI & Uvicorn
-* **Orchestration:** LangChain (LCEL)
-* **Vector Store:** Qdrant (Dockerized)
-* **LLM:** OpenAI GPT-4o / GPT-3.5-turbo
-* **Frontend:** Streamlit
-* **Environment:** Docker Compose
+*(Note: As a serverless service, it may take a few seconds to "wake up" on first use).* 
 
-## 🏗️ Architecture Overview
+---
 
-1. **Ingestion:** PDFs are uploaded via API/UI -> Text Chunking -> Vector Embeddings.
-2. **Storage:** Vectors are stored in a local Qdrant container.
-3. **Retrieval:** User queries are converted to vectors -> Semantic Search in Qdrant.
-4. **Generation:** Relevant context + Query are sent to GPT-4 -> Answer generation.
+## 🏗️ System Architecture
 
-## ⚙️ Installation & Setup
+The project follows a modern **decoupled microservices** architecture, ensuring scalability and maintainability.
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/YOUR_USERNAME/rag-enterprise-assistant.git
-cd rag-enterprise-assistant
+```mermaid
+graph LR
+    User(User) -->|HTTPS| Frontend[Streamlit UI<br>Google Cloud Run]
+    Frontend -->|REST API| Backend[FastAPI Brain<br>Google Cloud Run]
+    Backend -->|Embeddings| OpenAI[OpenAI API]
+    Backend <-->|Vector Search| DB[(Qdrant Cloud<br>Vector DB)]
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory:
+**Components:**
+- **Frontend (UI):** Interface built with Streamlit. Manages file uploads and interactive chat. Containerized with Docker.
+- **Backend (API):** Logical brain using FastAPI. Orchestrates document ingestion (RAG pipeline) and response generation.
+- **Vector Database:** Qdrant (Cloud) for persistent vector storage and high-speed semantic search.
+- **LLM:** Integration with OpenAI (GPT) via LangChain for final reasoning.
 
-```ini
-OPENAI_API_KEY=sk-proj-your-key-here...
-QDRANT_HOST=localhost
-QDRANT_PORT=6333
-QDRANT_COLLECTION_NAME=rag_portfolio_docs
+⚡ **Key Features**
+- Document Ingestion: PDF processing, chunking, and automatic vectorization.
+- Semantic Search: Retrieves by meaning rather than exact keywords using embeddings.
+- Serverless Architecture: Deployed on Google Cloud Run, scales to zero when idle (cost‑efficient).
+- Containerization: Reproducible environments thanks to Docker.
+- Persistence: Knowledge stored in Qdrant, not lost on server restart.
+
+🛠️ **Tech Stack**
+- Language: Python 3.12
+- Frameworks: FastAPI, Streamlit
+- AI & NLP: LangChain, OpenAI API
+- Database: Qdrant Client
+- DevOps: Docker, Google Cloud Platform (GCP), Git
+
+📂 **Project Structure**
+```
+Plaintext
+├── Dockerfile.api        # Backend image configuration
+├── Dockerfile.frontend   # Frontend image configuration
+├── main.py               # API entry point (FastAPI)
+├── frontend_ui.py        # User interface (Streamlit)
+├── rag_logic.py          # RAG logic (LangChain + Qdrant)
+├── requirements.txt      # Project dependencies
+└── README.md             # Documentation
 ```
 
-### 3. Start the Vector Database
-Use Docker Compose to spin up the Qdrant service:
+💻 **Local Execution**
+To run this project locally:
 
-```bash
-docker-compose up -d
-```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/mikelballay/rag-enterprise-assistant.git
+   cd rag-enterprise-assistant
+   ```
 
-### 4. Install Dependencies
-It is recommended to use a virtual environment:
+2. **Configure Environment Variables:**
+   Create a `.env` file and add your keys:
+   ```ini
+   OPENAI_API_KEY=your-openai-key
+   QDRANT_URL=your-qdrant-url
+   QDRANT_API_KEY=your-qdrant-key
+   ```
 
-```bash
-python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-pip install -r requirements.txt
-```
+4. **Run Backend and Frontend (in separate terminals):**
+   ```bash
+   # Terminal 1 (Backend)
+   uvicorn main:app --reload
 
-## 🏃‍♂️ Running the Application
-You need to run both the Backend and Frontend (in separate terminals).
+   # Terminal 2 (Frontend)
+   streamlit run frontend_ui.py
+   ```
 
-### Terminal 1: Backend API
+**Author**
+Developed by Mikel Ballay.
 
-```bash
-uvicorn app.main:app --reload
-```
-API Docs available at: http://127.0.0.1:8000/docs
+[Linkedin](https://www.linkedin.com/in/mikel-ballay/)
 
-### Terminal 2: Frontend UI
 
-```bash
-streamlit run frontend_ui.py
-```
-Access the UI at: http://localhost:8501
-
-## 🧪 Usage Example
-1. Open the Streamlit UI.
-2. Upload a PDF document (e.g., an invoice, a manual, or a report).
-3. Click "Procesar e Ingestar".
-4. Ask specific questions about the content (e.g., "What is the total amount in the invoice?").
-5. Observe how the system retrieves the exact answer from the text.
-
-Developed by Mikel Ballay 
