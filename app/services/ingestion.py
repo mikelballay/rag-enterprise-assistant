@@ -2,7 +2,6 @@ import os
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
-# CAMBIO IMPORTANTE: Usamos la librería especializada, no la de comunidad
 from langchain_qdrant import QdrantVectorStore
 from qdrant_client import QdrantClient
 from app.core.config import settings
