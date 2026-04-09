@@ -4,7 +4,7 @@ import os
 
 # CONFIGURACIÓN
 # Intenta leer la variable de entorno API_URL. 
-# Si no existe (estás en local), usa la del backend de Google que pegaste antes.
+# Si no existe (estás en local), usa la del backend de GCP.
 API_URL = os.getenv("API_URL", "https://api-rag-82274106778.us-central1.run.app") 
 
 st.set_page_config(page_title="RAG Enterprise Assistant", page_icon="🧠")
@@ -27,7 +27,7 @@ def main():
         if uploaded_file is not None:
             if st.button("Procesar e Ingestar"):
                 with st.spinner("Troceando, vectorizando e indexando..."):
-                    # Enviamos el archivo a TU API (Endpoint /ingest)
+                    # Enviamos el archivo a la API (Endpoint /ingest)
                     files = {"file": (uploaded_file.name, uploaded_file, "application/pdf")}
                     try:
                         response = requests.post(f"{API_URL}/ingest", files=files)
