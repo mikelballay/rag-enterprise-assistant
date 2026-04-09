@@ -54,14 +54,20 @@ graph LR
 
 📂 **Project Structure**
 ```
-Plaintext
-├── Dockerfile.api        # Backend image configuration
-├── Dockerfile.frontend   # Frontend image configuration
-├── main.py               # API entry point (FastAPI)
-├── frontend_ui.py        # User interface (Streamlit)
-├── rag_logic.py          # RAG logic (LangChain + Qdrant)
-├── requirements.txt      # Project dependencies
-└── README.md             # Documentation
+├── app/
+│   ├── core/
+│   │   └── config.py          # Gestión de variables de entorno
+│   ├── services/
+│   │   ├── chat.py            # Cadena RAG LCEL, prompts y setup OpenAI
+│   │   └── ingestion.py       # Carga de PDF, chunking y vectorización
+│   └── schemas.py             # Modelos Pydantic (ChatRequest, ChatResponse...)
+├── data/                      # Almacenamiento temporal de PDFs
+├── Dockerfile.api             # Configuración de imagen del Backend
+├── Dockerfile.frontend        # Configuración de imagen del Frontend
+├── main.py                    # Punto de entrada API (Enrutadores FastAPI)
+├── frontend_ui.py             # Punto de entrada UI (Streamlit)
+├── requirements.txt           # Dependencias del proyecto
+└── README.md                  # Documentación
 ```
 
 💻 **Local Execution**
