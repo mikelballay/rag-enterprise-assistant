@@ -1,62 +1,104 @@
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
+
 from app.core.config import settings
 
-def get_rag_chain():
-    """
-    Configura y devuelve la cadena de procesamiento RAG.
-    """
-    
-    # 1. Configurar el Modelo de Lenguaje (El cerebro)
-    llm = ChatOpenAI(
-        model="gpt-4o-mini", # O gpt-3.5-turbo si prefieres
-        temperature=0,       # 0 = Máxima precisión, 0 creatividad (Ideal para técnico)
-        api_key=settings.OPENAI_API_KEY
-    )
+# Retrieval config
+_RETRIEVAL_K_WITH_RERANKING = 10   # wide net before reranking
+_RETRIEVAL_K_WITHOUT_RERANKING = 3  # original behaviour
+_RERANKER_TOP_N = 3
 
-    # 2. Conectar a la Base de Datos (Actualizado para Cloud)
-    vectorstore = QdrantVectorStore.from_existing_collection(
-        embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
-        collection_name=settings.QDRANT_COLLECTION_NAME,
-        url=settings.QDRANT_URL,           
-        api_key=settings.QDRANT_API_KEY    
-    )
-    # Convertimos la DB en un "Retriever" (buscador)
-    # k=3 significa: "Traeme los 3 fragmentos más relevantes"
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-
-    # 3. El Prompt (Las instrucciones)
-    template = """Eres un asistente técnico experto. 
+_PROMPT_TEMPLATE = """Eres un asistente técnico experto.
     Usa SOLAMENTE el siguiente contexto para responder a la pregunta del usuario.
     Si la respuesta no está en el contexto, di "No tengo información suficiente en los documentos proporcionados".
-    
+
     Contexto:
     {context}
-    
+
     Pregunta:
     {question}
     """
-    prompt = ChatPromptTemplate.from_template(template)
 
-    # 4. La Cadena (El pipeline)
-    # Explicación:
-    # 1. Toma la pregunta y busca contexto (retriever)
-    # 2. Pasa el contexto y la pregunta al prompt
-    # 3. Pasa el prompt al LLM
-    # 4. Parsea la salida a texto simple
-    rag_chain = (
+
+def _build_vectorstore():
+    return QdrantVectorStore.from_existing_collection(
+        embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
+        collection_name=settings.QDRANT_COLLECTION_NAME,
+        url=settings.QDRANT_URL,
+        api_key=settings.QDRANT_API_KEY,
+    )
+
+
+def ask_question_full(question: str) -> dict:
+    """
+    Run the full RAG pipeline and return both the answer and metadata.
+
+    Returns
+    -------
+    dict with keys:
+        answer            (str)   the LLM-generated answer
+        reranking_enabled (bool)  whether the reranking step was applied
+    """
+    use_reranking: bool = settings.USE_RERANKING
+
+    # ── 1. Retrieve ────────────────────────────────────────────────────────
+    k = _RETRIEVAL_K_WITH_RERANKING if use_reranking else _RETRIEVAL_K_WITHOUT_RERANKING
+    retriever = _build_vectorstore().as_retriever(search_kwargs={"k": k})
+    docs = retriever.invoke(question)
+
+    # ── 2. Rerank (optional) ───────────────────────────────────────────────
+    if use_reranking:
+        from app.services.reranker import get_reranker  # lazy import keeps startup fast
+        texts = get_reranker().rerank(
+            query=question,
+            documents=[d.page_content for d in docs],
+            top_n=_RERANKER_TOP_N,
+        )
+    else:
+        texts = [d.page_content for d in docs]
+
+    context = "\n\n".join(texts)
+
+    # ── 3. Generate ────────────────────────────────────────────────────────
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=settings.OPENAI_API_KEY)
+    prompt = ChatPromptTemplate.from_template(_PROMPT_TEMPLATE)
+    chain = prompt | llm | StrOutputParser()
+    answer = chain.invoke({"context": context, "question": question})
+
+    return {"answer": answer, "reranking_enabled": use_reranking}
+
+
+def ask_question(question: str) -> str:
+    """
+    Convenience wrapper — returns only the answer string.
+
+    Keeps the same signature as before so evaluation pipelines and CLI
+    scripts that call ``ask_question`` continue to work unchanged.
+    """
+    return ask_question_full(question)["answer"]
+
+
+# ---------------------------------------------------------------------------
+# Legacy helper kept for backward compatibility
+# ---------------------------------------------------------------------------
+
+def get_rag_chain():
+    """
+    Returns the original LangChain chain (retriever k=3, no reranking).
+
+    Retained so any external code that imported this function continues to
+    work.  New code should call ``ask_question`` or ``ask_question_full``.
+    """
+    from langchain_core.runnables import RunnablePassthrough  # noqa: PLC0415
+
+    retriever = _build_vectorstore().as_retriever(search_kwargs={"k": 3})
+    prompt = ChatPromptTemplate.from_template(_PROMPT_TEMPLATE)
+    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0, api_key=settings.OPENAI_API_KEY)
+    return (
         {"context": retriever, "question": RunnablePassthrough()}
         | prompt
         | llm
         | StrOutputParser()
     )
-    
-    return rag_chain
-
-def ask_question(question: str):
-    chain = get_rag_chain()
-    response = chain.invoke(question)
-    return response

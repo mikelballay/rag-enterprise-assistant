@@ -7,6 +7,7 @@ class ChatRequest(BaseModel):
 # Lo que nosotros respondemos
 class ChatResponse(BaseModel):
     answer: str
+    reranking_enabled: bool
 
 # Para la respuesta de ingestión
 class IngestResponse(BaseModel):

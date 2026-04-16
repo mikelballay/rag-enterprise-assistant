@@ -2,7 +2,7 @@ import os
 import shutil
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from app.schemas import ChatRequest, ChatResponse, IngestResponse
-from app.services.chat import ask_question
+from app.services.chat import ask_question_full
 from app.services.ingestion import ingest_file
 
 app = FastAPI(
@@ -21,8 +21,8 @@ def chat_endpoint(request: ChatRequest):
     Endpoint para hacer preguntas al documento.
     """
     try:
-        response_text = ask_question(request.question)
-        return ChatResponse(answer=response_text)
+        result = ask_question_full(request.question)
+        return ChatResponse(answer=result["answer"], reranking_enabled=result["reranking_enabled"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
