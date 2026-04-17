@@ -10,6 +10,9 @@ _RETRIEVAL_K_WITH_RERANKING = 10   # wide net before reranking
 _RETRIEVAL_K_WITHOUT_RERANKING = 3  # original behaviour
 _RERANKER_TOP_N = 3
 
+# Module-level cache — built once per process, reused across requests
+_vectorstore_cache = None
+
 _PROMPT_TEMPLATE = """Eres un asistente técnico experto.
     Usa SOLAMENTE el siguiente contexto para responder a la pregunta del usuario.
     Si la respuesta no está en el contexto, di "No tengo información suficiente en los documentos proporcionados".
@@ -23,12 +26,15 @@ _PROMPT_TEMPLATE = """Eres un asistente técnico experto.
 
 
 def _build_vectorstore():
-    return QdrantVectorStore.from_existing_collection(
-        embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
-        collection_name=settings.QDRANT_COLLECTION_NAME,
-        url=settings.QDRANT_URL,
-        api_key=settings.QDRANT_API_KEY,
-    )
+    global _vectorstore_cache
+    if _vectorstore_cache is None:
+        _vectorstore_cache = QdrantVectorStore.from_existing_collection(
+            embedding=OpenAIEmbeddings(api_key=settings.OPENAI_API_KEY),
+            collection_name=settings.QDRANT_COLLECTION_NAME,
+            url=settings.QDRANT_URL,
+            api_key=settings.QDRANT_API_KEY,
+        )
+    return _vectorstore_cache
 
 
 def ask_question_full(question: str) -> dict:
