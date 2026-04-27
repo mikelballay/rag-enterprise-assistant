@@ -26,15 +26,23 @@ def main():
         
         if uploaded_file is not None:
             if st.button("Procesar e Ingestar"):
+                # Warm-up: wake the Cloud Run container before uploading
+                with st.spinner("Conectando con el servidor (puede tardar ~30s la primera vez)..."):
+                    try:
+                        requests.get(f"{API_URL}/", timeout=90)
+                    except Exception:
+                        pass  # proceed anyway; the ingest call will surface the real error
+
                 with st.spinner("Troceando, vectorizando e indexando..."):
-                    # Enviamos el archivo a la API (Endpoint /ingest)
                     files = {"file": (uploaded_file.name, uploaded_file, "application/pdf")}
                     try:
-                        response = requests.post(f"{API_URL}/ingest", files=files)
+                        response = requests.post(f"{API_URL}/ingest", files=files, timeout=300)
                         if response.status_code == 200:
                             st.success("✅ ¡Documento aprendido exitosamente!")
                         else:
                             st.error(f"❌ Error: {response.text}")
+                    except requests.exceptions.Timeout:
+                        st.error("❌ El servidor tardó demasiado. Inténtalo de nuevo.")
                     except Exception as e:
                         st.error(f"Error de conexión: {e}")
 
@@ -64,15 +72,16 @@ def main():
             try:
                 # Llamada al endpoint /chat
                 payload = {"question": prompt}
-                response = requests.post(f"{API_URL}/chat", json=payload)
-                
+                response = requests.post(f"{API_URL}/chat", json=payload, timeout=120)
+
                 if response.status_code == 200:
                     answer = response.json()["answer"]
                     message_placeholder.markdown(answer)
-                    # Guardar respuesta en historial
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                 else:
                     message_placeholder.error(f"Error del servidor: {response.text}")
+            except requests.exceptions.Timeout:
+                message_placeholder.error("❌ El servidor tardó demasiado. Inténtalo de nuevo.")
             except Exception as e:
                 message_placeholder.error(f"No se pudo conectar con la API: {e}")
 
